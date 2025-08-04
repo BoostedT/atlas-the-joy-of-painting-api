@@ -6,19 +6,18 @@ app = Flask(__name__)
 
 # Connect to DB
 conn = psycopg2.connect(
-    dbname="joy_of_painting",
-    user="postgres",
-    password="pass213",
-    host="localhost"
+    dbname="joy_of_painting", user="postgres", password="pass213", host="localhost"
 )
 
-@app.route('/episodes', methods=['GET'])
+
+@app.route("/episodes", methods=["GET"])
 def get_episodes():
     params = request.args
-    colors = params.getlist('color')
-    subjects = params.getlist('subject')
-    months = params.getlist('month')
-    match_all = params.get('match', 'any') == 'all'
+    colors = params.getlist("color")
+    subjects = params.getlist("subject")
+    months = params.getlist("month")
+    title = params.get("title")
+    match_all = params.get("match", "any") == "all"
 
     base_query = """
         SELECT DISTINCT e.id, e.title, e.season, e.episode, e.air_date
@@ -29,24 +28,36 @@ def get_episodes():
         LEFT JOIN subjects s ON es.subject_id = s.id
     """
 
-    conditions = []
     values = []
+    all_conditions = []
 
     if months:
-        conditions.append("EXTRACT(MONTH FROM e.air_date) = ANY(%s)")
-        values.append(list(map(int, months)))
+        placeholders = ','.join(['%s'] * len(months))
+        all_conditions.append(f"EXTRACT(MONTH FROM e.air_date) IN ({placeholders})")
+        values.extend(list(map(int, months)))
+
+    optional_conditions = []
 
     if colors:
-        conditions.append("LOWER(c.name) = ANY(%s)")
+        optional_conditions.append("LOWER(c.name) = ANY(%s)")
         values.append([color.lower() for color in colors])
 
     if subjects:
-        conditions.append("LOWER(s.name) = ANY(%s)")
+        optional_conditions.append("LOWER(s.name) = ANY(%s)")
         values.append([subject.lower() for subject in subjects])
 
-    if conditions:
-        connector = " AND " if match_all else " OR "
-        base_query += " WHERE " + connector.join(conditions)
+    if title:
+        optional_conditions.append("LOWER(e.title) = %s")
+        values.append(title.lower())
+
+    if optional_conditions:
+        logic = " AND " if match_all else " OR "
+        all_conditions.append("(" + logic.join(optional_conditions) + ")")
+    
+    all_conditions.append("e.air_date IS NOT NULL")
+
+    if all_conditions:
+        base_query += " WHERE " + " AND ".join(all_conditions)
 
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(base_query, values)
@@ -54,5 +65,5 @@ def get_episodes():
 
     return jsonify(episodes)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
