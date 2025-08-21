@@ -6,7 +6,7 @@ Users can filter episodes by **broadcast month, subject matter, and color palett
 ---
 
 ## 👨‍💻 About the Developer
-Hi, I’m Tyler — a full-stack developer and USMC veteran currently studying at **Atlas School**.  
+Hi, I’m Tyler — a full-stack developer and currently studying at **Atlas School**.  
 This project allowed me to bring together my skills in **ETL, databases, and API development** while working with a dataset I enjoyed.  
 
 - [LinkedIn](https://www.linkedin.com/in/tylerwhitchurch)
